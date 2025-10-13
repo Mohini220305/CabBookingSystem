@@ -5,23 +5,21 @@
 #include "driver.h"
 
 // Adjacency List Node
-typedef struct Node
-{
+typedef struct Node{
     int dest;
     int distance;
     struct Node *next;
 } Node;
 
 // Graph Structure
-typedef struct Graph
-{
+typedef struct Graph{
     int n;                    // number of locations
     char placeNames[MAX][30]; // names of places
     Node *list[MAX];          // adjacency list
 } Graph;
 
 
-Graph *city;
+extern Graph *city;
 Graph *createMap(int places);
 Graph *initDehradunMap();
 Node *createNode(int dest, int distance);

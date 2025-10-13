@@ -1,14 +1,12 @@
 #ifndef PRIORITY_QUEUE_H
 #define PRIORITY_QUEUE_H
 
-typedef struct
-{
+typedef struct{
     int vertex;   // place index
     int distance; // current shortest distance
 } PQNode;
 
-typedef struct
-{
+typedef struct{
     PQNode heap[100];
     int size;
 } PriorityQueue;

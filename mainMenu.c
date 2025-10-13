@@ -15,6 +15,7 @@ int main()
     city = initDehradunMap();
     loadRidesFromFile();
     initBillStack();
+    loadBillsFromFile();
 
     int role, success;
     printf("\t=========================================\n");

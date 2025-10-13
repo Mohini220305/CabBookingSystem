@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <string.h>
 #include "customer.h"
-#include "driver.h"
+#include "stack.h"
 
+RideStack rs;
+Ride billRideData;
+Graph *city;
 
 void customerMenu(Graph *city, int custId)
 {
@@ -71,6 +74,7 @@ void customerMenu(Graph *city, int custId)
     } while (ch != 5);
 }
 
+// Show all rides of a customer with timestamps
 void showCustomerHistory(int custId)
 {
     FILE *fp = fopen("rides.txt", "rb");
@@ -88,7 +92,21 @@ void showCustomerHistory(int custId)
     {
         if (r.customerId == custId)
         {
-            printf("Ride ID: %d | Pickup: %s | Drop: %s | Status: %s\n",r.rideID, r.pickup, r.drop, r.status);
+            printf("\nRide ID: %d", r.rideID);
+            printf("\nPickup: %s", r.pickup);
+            printf("\nDrop: %s", r.drop);
+            printf("\nStatus: %s", r.status);
+            if (strcmp(r.status, "Accepted") == 0 || strcmp(r.status, "Ongoing") == 0)
+                printf(" (Driver ID: %d)", r.driverId);
+
+            printf("\nBooking Time: ");
+            printTime(r.bookingTime);
+            printf("\nStart Time  : ");
+            printTime(r.startTime);
+            printf("\nEnd Time    : ");
+            printTime(r.endTime);
+            printf("\n---------------------------\n");
+
             found = 1;
         }
     }
@@ -100,6 +118,7 @@ void showCustomerHistory(int custId)
     printf("\n");
 }
 
+// View current ride status for a customer with timestamps and bill option
 void viewRideStatus(int custId)
 {
     FILE *fp = fopen("rides.txt", "rb");
@@ -112,6 +131,7 @@ void viewRideStatus(int custId)
     Ride r;
     int found = 0;
     printf("\n\t--- Your Rides ---\n");
+
     while (fread(&r, sizeof(Ride), 1, fp))
     {
         if (r.customerId == custId)
@@ -120,9 +140,32 @@ void viewRideStatus(int custId)
             printf("\tPickup: %s", r.pickup);
             printf("\tDrop: %s", r.drop);
             printf("\tStatus: %s", r.status);
-
-            if (strcmp(r.status, "Accepted") == 0)
+            if (strcmp(r.status, "Accepted") == 0 || strcmp(r.status, "Ongoing") == 0)
                 printf(" (Driver ID: %d)", r.driverId);
+
+            printf("\nBooking Time: ");
+            printTime(r.bookingTime);
+            printf("\nStart Time  : ");
+            printTime(r.startTime);
+            printf("\nEnd Time    : ");
+            printTime(r.endTime);
+
+            // Only allow viewing bill if ride is completed
+            if (strcmp(r.status, "Completed") == 0)
+            {
+                printf("\nDo you want to view/download the bill? (1-Yes / 0-No): ");
+                int choice;
+                scanf("%d", &choice);
+                while (getchar() != '\n')
+                    ;
+
+                if (choice == 1)
+                {
+                    // Call generateBill with ride info
+                    // It will read correct timestamps from rides.txt
+                    generateBill(&rs, r.rideID, r.customerId, r.driverId, r.pickup, r.drop, r.distance, r.fare);
+                }
+            }
 
             printf("\n");
             found = 1;
@@ -131,6 +174,6 @@ void viewRideStatus(int custId)
 
     if (!found)
         printf("You have no rides currently.\n");
+
     fclose(fp);
 }
-

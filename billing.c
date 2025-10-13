@@ -45,7 +45,24 @@ Ride *popBill()
     }
     return billStack.bills[billStack.top--];
 }
+void loadBillsFromFile()
+{
+    FILE *fp = fopen("bills.txt", "rb");
+    if (!fp)
+        return;
 
+    initBillStack(); // clear stack first
+
+    Ride r;
+    while (fread(&r, sizeof(Ride), 1, fp) == 1)
+    {
+        Ride *billCopy = (Ride *)malloc(sizeof(Ride));
+        *billCopy = r;
+        pushBill(billCopy);
+    }
+
+    fclose(fp);
+}
 float calculateFare(Graph *city, char pickup[], char drop[])
 {
     int pickupIndex = getLocationIndex(city, pickup);
@@ -101,63 +118,112 @@ float calculateFare(Graph *city, char pickup[], char drop[])
     float perKmRate = 10.0;
     float totalFare = baseFare + (dist[dropIndex] * perKmRate);
 
-    printf("\nCalculated Distance: %d km\n", dist[dropIndex]);
-    printf("Fare: %.2f rupees\n", totalFare);
+    //printf("\nCalculated Distance: %d km\n", dist[dropIndex]);
+    //printf("Fare: %.2f rupees\n", totalFare);
 
     return totalFare;
 }
+// Display all bills with timestamps
 void displayAllBills()
 {
-    if (isBillStackEmpty())
+    FILE *fp = fopen("bills.txt", "rb");
+    if (!fp)
     {
-        printf("No bills in stack yet.\n");
+        printf("No bills found!\n");
         return;
     }
 
+    Ride r;
+    int found = 0;
     printf("\n===== All Completed Ride Bills =====\n");
-    for (int i = billStack.top; i >= 0; i--)
+
+    while (fread(&r, sizeof(Ride), 1, fp) == 1)
     {
-        Ride *r = billStack.bills[i];
         printf("\nRide ID   : %d\nCustomer  : %d\nDriver    : %d\nPickup    : %s\nDrop      : %s\nDistance  : %d km\nFare      : %.2f rupees\nStatus    : %s\n",
-               r->rideID, r->customerId, r->driverId, r->pickup, r->drop, r->distance, r->fare, r->status);
+               r.rideID, r.customerId, r.driverId, r.pickup, r.drop, r.distance, r.fare, r.status);
+        printf("Booking Time: ");
+        printTime(r.bookingTime);
+        printf("\n");
+        printf("Start Time  : ");
+        printTime(r.startTime);
+        printf("\n");
+        printf("End Time    : ");
+        printTime(r.endTime);
+        printf("\n");
         printf("------------------------------------\n");
+        found = 1;
     }
+
+    if (!found)
+        printf("No completed ride bills found.\n");
+
+    fclose(fp);
 }
 
-void generateBill(RideStack *s, int rideId, int custId, int driverId, char pickup[], char drop[], int distance)
+// Generate bill for a completed ride
+void generateBill(RideStack *s, int rideId, int custId, int driverId, char pickup[], char drop[], int distance, float fare)
 {
     Ride r;
-    r.rideID = rideId;
-    r.customerId = custId;
-    r.driverId = driverId;
-    strcpy(r.pickup, pickup);
-    strcpy(r.drop, drop);
-    r.distance = distance;
+    int found = 0;
 
-    // Calculate fare based on distance
-    r.fare = calculateFare(city,r.pickup,r.drop);
-
-    strcpy(r.status, "Completed");
-
-    pushStack(s, r);
-    Ride *billCopy = (Ride *)malloc(sizeof(Ride));
-    *billCopy = r; 
-    pushBill(billCopy);
-
-    FILE *fp = fopen("rides.txt", "rb+");
+    // Read ride from rides.txt to get correct timestamps
+    FILE *fp = fopen("rides.txt", "rb");
     if (fp)
     {
         Ride temp;
         while (fread(&temp, sizeof(Ride), 1, fp))
         {
-            if (temp.rideID == r.rideID)
+            if (temp.rideID == rideId)
             {
-                fseek(fp, -sizeof(Ride), SEEK_CUR);
-                fwrite(&r, sizeof(Ride), 1, fp);
+                r = temp; // use actual ride with correct times
+                found = 1;
                 break;
             }
         }
         fclose(fp);
+    }
+
+    if (!found)
+    {
+        printf("Ride not found!\n");
+        return;
+    }
+
+    // Recalculate fare if needed
+    r.fare = calculateFare(city, r.pickup, r.drop);
+
+    // Push into in-memory stack
+    pushStack(s, r);
+
+    Ride *billCopy = (Ride *)malloc(sizeof(Ride));
+    *billCopy = r;
+    pushBill(billCopy);
+
+    // Append to bills.txt only if not already present
+    FILE *bfp = fopen("bills.txt", "rb");
+    int duplicate = 0;
+    if (bfp)
+    {
+        Ride temp;
+        while (fread(&temp, sizeof(Ride), 1, bfp))
+        {
+            if (temp.rideID == rideId)
+            {
+                duplicate = 1;
+                break;
+            }
+        }
+        fclose(bfp);
+    }
+
+    if (!duplicate)
+    {
+        bfp = fopen("bills.txt", "ab");
+        if (bfp)
+        {
+            fwrite(&r, sizeof(Ride), 1, bfp);
+            fclose(bfp);
+        }
     }
 
     // Print bill
@@ -169,5 +235,11 @@ void generateBill(RideStack *s, int rideId, int custId, int driverId, char picku
     printf("Drop      : %s\n", r.drop);
     printf("Distance  : %d km\n", r.distance);
     printf("Fare      : %.2f rupees\n", r.fare);
-    printf("=====================\n");
+    printf("Booking Time: ");
+    printTime(r.bookingTime);
+    printf("\nStart Time  : ");
+    printTime(r.startTime);
+    printf("\nEnd Time    : ");
+    printTime(r.endTime);
+    printf("\n=====================\n");
 }

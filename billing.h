@@ -16,6 +16,7 @@ extern BillStack billStack;
 void initBillStack();
 int isBillStackEmpty();
 int isBillStackFull();
+void loadBillsFromFile();
 void pushBill(Ride *ride);
 Ride *popBill();
 void displayAllBills();

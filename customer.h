@@ -2,6 +2,7 @@
 #define CUSTOMER_H
 
 #include "map.h"
+#include "driver.h"
 #include "ride.h"
 
 typedef struct

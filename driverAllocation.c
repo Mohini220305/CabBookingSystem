@@ -3,8 +3,8 @@
 #include <string.h>
 #include "ride.h"
 #include "map.h"
-#include "priorityQueue.h"
 #include "driver.h"
+#include "priorityQueue.h"
 
 int findNearestDriver(Graph *g, Driver drivers[], int numDrivers, int pickupLoc){
     int dist[MAX], visited[MAX];
@@ -54,9 +54,32 @@ int findNearestDriver(Graph *g, Driver drivers[], int numDrivers, int pickupLoc)
     return nearestDriver;
 }
 
-int allocateDriver(Graph *city, Driver drivers[], int numDrivers, int pickupLoc){
+int allocateDriver(Graph *city, Driver drivers[], int numDrivers, int pickupLoc, char *pickup, char *drop){
     numDrivers = loadDrivers(drivers);
-    int driverId = findNearestDriver(city, drivers, numDrivers, pickupLoc);
+    int driverId = -1;
+    int sameRouteCount = 0;
+
+    FILE *rfp = fopen("rides.txt", "rb");
+    if (rfp){
+        Ride existing;
+        while (fread(&existing, sizeof(Ride), 1, rfp)){
+            if (strcmp(existing.pickup, pickup) == 0 && strcmp(existing.drop, drop) == 0 && existing.driverId != -1){
+                if (driverId == -1)
+                    driverId = existing.driverId;
+                if (existing.driverId == driverId)
+                    sameRouteCount++;
+            }
+        }
+        fclose(rfp);
+    }
+
+    if (sameRouteCount >= 2){
+        driverId = -1;
+    }
+
+    if (driverId == -1){
+        driverId = findNearestDriver(city, drivers, numDrivers, pickupLoc);
+    }
 
     if (driverId != -1){
         FILE *dfp = fopen("drivers.txt", "rb+");
@@ -83,14 +106,25 @@ int allocateDriver(Graph *city, Driver drivers[], int numDrivers, int pickupLoc)
     return driverId;
 }
 
-void reassignRide(Ride *ride, Graph *city){
+void reassignRide(Ride *ride, Graph *city, int rejectedDriverId){
     Driver drivers[50];
     int numDrivers = loadDrivers(drivers);
+
+    for (int i = 0; i < numDrivers; i++){
+        if (drivers[i].id == rejectedDriverId){
+            drivers[i].available = 0;
+            break;
+        }
+    }
+
     int pickupIndex = getLocationIndex(city, ride->pickup);
-    int driverId = findNearestDriver(city, drivers, numDrivers, pickupIndex);
+    int driverId = allocateDriver(city, drivers, numDrivers, pickupIndex, ride->pickup, ride->drop);
+
+    if (driverId == rejectedDriverId){
+        driverId = -1;
+    }
 
     if (driverId != -1){
-        allocateDriver(city, drivers, numDrivers, pickupIndex);
         ride->driverId = driverId;
         strcpy(ride->status, "Pending");
         printf("Ride reassigned to Driver ID: %d\n", driverId);
@@ -100,6 +134,7 @@ void reassignRide(Ride *ride, Graph *city){
         strcpy(ride->status, "Waiting");
         printf("No available drivers nearby. Ride moved to Waiting queue.\n");
     }
+
     FILE *fp = fopen("rides.txt", "rb+");
     if (!fp){
         printf("Error updating rides file!\n");

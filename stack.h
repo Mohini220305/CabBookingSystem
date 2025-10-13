@@ -17,6 +17,6 @@ void initStack(RideStack *s);
 int isEmptyStack(RideStack *s);
 int isFullStack(RideStack *s);
 void pushStack(RideStack *s, Ride r);
-void generateBill(RideStack *s,int rideId, int custId, int driverId, char pickup[], char drop[], int distance);
+void generateBill(RideStack *s,int rideId, int custId, int driverId, char pickup[], char drop[], int distance, float fare);
 
 #endif

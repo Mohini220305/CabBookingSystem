@@ -1,13 +1,14 @@
 #include <stdio.h>
 #include <string.h>
+#include "map.h"
 #include "driver.h"
 #include "ride.h"
 #include "stack.h"
-#include "map.h"
 #include "billing.h"
 
 RideStack rs;
 Ride billRideData;
+Graph *city;
 
 void driverMenu(int driverId)
 {
@@ -47,7 +48,6 @@ void driverMenu(int driverId)
 // This function now shows assigned rides AND lets driver Accept/Reject/Start/End
 void viewAssignedRides(int driverId)
 {
-    int shouldGenerateBill = 0;
     FILE *fp = fopen("rides.txt", "rb");
     FILE *temp = fopen("temp.txt", "wb");
     if (!fp || !temp)
@@ -62,12 +62,16 @@ void viewAssignedRides(int driverId)
 
     Ride r;
     int found = 0;
-    int distance = 0;
+
     printf("\n--- Assigned Rides ---\n");
+
     while (fread(&r, sizeof(Ride), 1, fp) == 1)
     {
         if (r.driverId == driverId &&
-             (strcmp(r.status, "Waiting") == 0 ||strcmp(r.status, "Pending") == 0 || strcmp(r.status, "Accepted") == 0 || strcmp(r.status, "Ongoing") == 0))
+            (strcmp(r.status, "Waiting") == 0 ||
+             strcmp(r.status, "Pending") == 0 ||
+             strcmp(r.status, "Accepted") == 0 ||
+             strcmp(r.status, "Ongoing") == 0))
         {
             found = 1;
 
@@ -75,13 +79,22 @@ void viewAssignedRides(int driverId)
             printf("\nCustomer ID: %d", r.customerId);
             printf("\nFrom: %s", r.pickup);
             printf("\nTo: %s", r.drop);
-            printf("\nStatus: %s\n", r.status);
+            printf("\nStatus: %s", r.status);
+            printf("\nBooking Time: ");
+            printTime(r.bookingTime);
+            printf("\nStart Time: ");
+            printTime(r.startTime);
+            printf("\nEnd Time: ");
+            printTime(r.endTime);
+            printf("\n");
 
             int choice;
             if (strcmp(r.status, "Pending") == 0 || strcmp(r.status, "Waiting") == 0)
             {
                 printf("\n1. Accept Ride\n2. Reject Ride\n3. Skip\nEnter choice: ");
                 scanf("%d", &choice);
+                getchar();
+
                 if (choice == 1)
                 {
                     strcpy(r.status, "Accepted");
@@ -89,34 +102,38 @@ void viewAssignedRides(int driverId)
                 }
                 else if (choice == 2)
                 {
-                    Driver drivers[50];
-                    int numDrivers = loadDrivers(drivers);
-                    for (int i = 0; i < numDrivers; i++)
-                    {
-                        if (drivers[i].id == driverId)
-                        {
-                            drivers[i].available = 1;
-                            break;
-                        }
-                    }
-                    FILE *dfp = fopen("drivers.txt", "wb");
+                    // Make driver available again
+                    FILE *dfp = fopen("drivers.txt", "rb+");
                     if (dfp)
                     {
-                        fwrite(drivers, sizeof(Driver), numDrivers, dfp);
+                        Driver d;
+                        while (fread(&d, sizeof(Driver), 1, dfp))
+                        {
+                            if (d.id == driverId)
+                            {
+                                d.available = 1;
+                                fseek(dfp, -sizeof(Driver), SEEK_CUR);
+                                fwrite(&d, sizeof(Driver), 1, dfp);
+                                break;
+                            }
+                        }
                         fclose(dfp);
                     }
 
-                    // Reassign 
-                    reassignRide(&r, city);
+                    printf("Ride Rejected! Attempting reassignment...\n");
+                    reassignRide(&r, city, driverId);
                 }
             }
             else if (strcmp(r.status, "Accepted") == 0)
             {
                 printf("\n1. Start Ride\n2. Skip\nEnter choice: ");
                 scanf("%d", &choice);
+                getchar();
+
                 if (choice == 1)
                 {
                     strcpy(r.status, "Ongoing");
+                    r.startTime = time(NULL); // set ride start time
                     printf("Ride Started!\n");
                 }
             }
@@ -124,45 +141,72 @@ void viewAssignedRides(int driverId)
             {
                 printf("\n1. End Ride\n2. Skip\nEnter choice: ");
                 scanf("%d", &choice);
+                getchar();
+
                 if (choice == 1)
                 {
                     strcpy(r.status, "Completed");
+                    r.endTime = time(NULL); // set ride end time
                     printf("Ride Completed Successfully!\n");
 
                     // Make driver available again
-                    Driver drivers[50];
-                    int numDrivers = loadDrivers(drivers);
-                    for (int i = 0; i < numDrivers; i++)
-                    {
-                        if (drivers[i].id == driverId)
-                        {
-                            drivers[i].available = 1;
-                            break;
-                        }
-                    }
-                    FILE *dfp = fopen("drivers.txt", "wb");
+                    FILE *dfp = fopen("drivers.txt", "rb+");
                     if (dfp)
                     {
-                        fwrite(drivers, sizeof(Driver), numDrivers, dfp);
+                        Driver d;
+                        while (fread(&d, sizeof(Driver), 1, dfp))
+                        {
+                            if (d.id == driverId)
+                            {
+                                d.available = 1;
+                                fseek(dfp, -sizeof(Driver), SEEK_CUR);
+                                fwrite(&d, sizeof(Driver), 1, dfp);
+                                break;
+                            }
+                        }
                         fclose(dfp);
                     }
 
+                    // Calculate distance & fare
                     int pickupIndex = getLocationIndex(city, r.pickup);
                     int dropIndex = getLocationIndex(city, r.drop);
                     if (pickupIndex != -1 && dropIndex != -1)
                     {
-                        
-                        distance = calculateDistance(city, pickupIndex, dropIndex);
-                        printf("%d ", distance);
+                        r.distance = calculateDistance(city, pickupIndex, dropIndex);
+                        r.fare = calculateFare(city, r.pickup, r.drop);
+                        printf("Total Distance: %d km\n", r.distance);
+                        printf("Fare: %.2f rupees\n", r.fare);
                     }
 
-                    r.distance = distance;
-                    shouldGenerateBill = 1;
-                    billRideData = r;
+                    // Update driver location
+                    dfp = fopen("drivers.txt", "rb+");
+                    if (dfp)
+                    {
+                        Driver d;
+                        while (fread(&d, sizeof(Driver), 1, dfp))
+                        {
+                            if (d.id == driverId)
+                            {
+                                d.location = dropIndex;
+                                fseek(dfp, -sizeof(Driver), SEEK_CUR);
+                                fwrite(&d, sizeof(Driver), 1, dfp);
+                                break;
+                            }
+                        }
+                        fclose(dfp);
+                    }
+
+                    FILE *bfp = fopen("bills.txt", "ab");
+                    if (bfp){
+                        fwrite(&r, sizeof(Ride), 1, bfp);
+                        fclose(bfp);
+                    }
+                    // Optionally: generate bill here
+                    //generateBill(&rs, r.rideID, r.customerId, r.driverId, r.pickup, r.drop, r.distance, r.fare);
                 }
             }
         }
-        r.distance = distance;
+
         fwrite(&r, sizeof(Ride), 1, temp);
     }
 
@@ -173,10 +217,6 @@ void viewAssignedRides(int driverId)
     {
         remove("rides.txt");
         rename("temp.txt", "rides.txt");
-        if (shouldGenerateBill)
-        {
-            generateBill(&rs, billRideData.rideID, billRideData.customerId,billRideData.driverId, billRideData.pickup,billRideData.drop, billRideData.distance);
-        }
     }
     else
     {
@@ -244,14 +284,20 @@ void viewCompletedRides(int driverId)
     {
         if (r.driverId == driverId && strcmp(r.status, "Completed") == 0)
         {
-            printf("\nRide ID: %d", r.rideID);
-            printf("\tCustomer ID: %d", r.customerId);
-            printf("\tFrom: %s", r.pickup);
-            printf("\tTo: %s", r.drop);
-            printf("\tDistance: %d km", r.distance);
-            printf("\tFare: %.2f", r.fare);
-            printf("\tStatus: %s\n", r.status);
             found = 1;
+            printf("\nRide ID: %d", r.rideID);
+            printf("\nCustomer ID: %d", r.customerId);
+            printf("\nFrom: %s", r.pickup);
+            printf("\nTo: %s", r.drop);
+            printf("\nDistance: %d km", r.distance);
+            printf("\nFare: %.2f", r.fare);
+            printf("\nStatus: %s", r.status);
+
+            // Print timestamps
+            printf("\nBooking Time: "); printTime(r.bookingTime);
+            printf("\nStart Time: "); printTime(r.startTime);
+            printf("\nEnd Time: "); printTime(r.endTime);
+            printf("\n---------------------------\n");
         }
     }
 

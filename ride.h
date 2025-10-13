@@ -1,9 +1,10 @@
 #ifndef RIDE_H
 #define RIDE_H
 
+#include <time.h>
+#include "map.h"
 #include "customer.h"
 #include "driver.h"
-#include "map.h"
 
 typedef struct Ride
 {
@@ -15,6 +16,10 @@ typedef struct Ride
     int distance;
     float fare;
     char status[30]; // "Waiting","Pending","Completed","Cancelled"
+    time_t bookingTime;      // when ride is booked
+    time_t cancellationTime; // if cancelled
+    time_t startTime;        // when ride starts
+    time_t endTime;          // when ride ends
     struct Ride *next;
 } Ride;
 
@@ -23,15 +28,15 @@ extern Ride *front;
 extern Ride *rear;
 extern Graph *city;
 
+void printTime(time_t t);
 Ride *bookRide(Graph *city, int customerId, char pickup[], char drop[]);
-int allocateDriver(Graph *city, Driver drivers[], int numDrivers, int pickupLoc);
+int allocateDriver(Graph *city, Driver drivers[], int numDrivers, int pickupLoc, char *pickup, char *drop);
 void cancelRide(int rideID);
-void reassignRide(Ride *ride, Graph *city);
+void reassignRide(Ride *ride, Graph *city, int driverId);
 void saveRideToFile(Ride *r);
 void loadRidesFromFile();
 void viewRideStatus(int custID); // for customer
 void showCustomerHistory(int customerId);
-void showDriverHistory(int driverId);
-//float calculateFare(int distance);
+//void showDriverHistory(int driverId);
 
 #endif
