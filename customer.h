@@ -11,9 +11,13 @@ typedef struct
     char name[50];
     char phone[15];
     char password[20];
+    int totalRides;
     int is_blocked; // 1 for blocked
 } Customer;
 
 void customerMenu(Graph *city, int custId);
+void updateCustomerDetails(int customerID);
+void viewRideStatus(int custId);
+void showCustomerDashboard(Customer c);
 
 #endif

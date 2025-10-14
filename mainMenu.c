@@ -86,3 +86,20 @@ int main()
     } while (role != 4);
     return 0;
 }
+
+void showCustomerDashboard(Customer c)
+{
+    printf("\n===== Welcome, %s! =====\n", c.name);
+    printf("Customer ID : %d\n", c.id);
+    printf("Phone       : %s\n", c.phone);
+    printf("Total Rides : %d\n", c.totalRides);             
+}
+
+void showDriverDashboard(Driver d)
+{
+    printf("\n===== Welcome, %s! =====\n", d.name);
+    printf("Driver ID   : %d\n", d.id);
+    printf("Vehicle     : %s\n", d.vehicle);
+    printf("Total Rides : %d\n", d.completedRides);
+    printf("Total Earnings: %.2f rupees\n", d.earnings);
+}

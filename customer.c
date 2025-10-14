@@ -17,7 +17,8 @@ void customerMenu(Graph *city, int custId)
         printf("2. View Ride History\n");
         printf("3. View Ride Status\n");
         printf("4. Cancel Ride\n");
-        printf("5. Logout\n");
+        printf("5. Update Profile\n");
+        printf("6. Logout\n");
         printf("Please select an option: ");
         scanf("%d", &ch);
         while (getchar() != '\n');
@@ -59,7 +60,11 @@ void customerMenu(Graph *city, int custId)
             break;
         }
 
-        case 5: // Logout
+        case 5:
+            updateCustomerDetails(custId);
+            break;
+
+        case 6: // Logout
             printf("\nLogging out...\n");
             break;
 
@@ -71,7 +76,7 @@ void customerMenu(Graph *city, int custId)
         printf("\nPress Enter to continue...");
         getchar();
 
-    } while (ch != 5);
+    } while (ch != 6);
 }
 
 // Show all rides of a customer with timestamps
@@ -176,4 +181,69 @@ void viewRideStatus(int custId)
         printf("You have no rides currently.\n");
 
     fclose(fp);
+}
+
+void updateCustomerDetails(int customerID)
+{
+    FILE *fp = fopen("customer.txt", "rb+");
+    if (fp == NULL)
+    {
+        printf("No customers found!\n");
+        return;
+    }
+
+    Customer c;
+    int found = 0;
+    long pos;
+
+    while (fread(&c, sizeof(Customer), 1, fp))
+    {
+        if (c.id == customerID)
+        {
+            found = 1;
+            pos = ftell(fp) - sizeof(Customer);
+            break;
+        }
+    }
+
+    if (!found)
+    {
+        printf("Customer not found!\n");
+        fclose(fp);
+        return;
+    }
+
+    int choice;
+    printf("\n--- Update Profile ---\n");
+    printf("1. Name\n2. Phone\n3. Password\nEnter choice: ");
+    scanf("%d", &choice);
+    getchar();
+
+    switch (choice)
+    {
+    case 1:
+        printf("Enter new name: ");
+        fgets(c.name, sizeof(c.name), stdin);
+        c.name[strcspn(c.name, "\n")] = '\0';
+        break;
+    case 2:
+        printf("Enter new phone: ");
+        scanf("%s", c.phone);
+        break;
+    case 3:
+        printf("Enter new password: ");
+        scanf("%s", c.password);
+        break;
+    default:
+        printf("Invalid choice!\n");
+        fclose(fp);
+        return;
+    }
+
+    fseek(fp, pos, SEEK_SET);
+    fwrite(&c, sizeof(Customer), 1, fp);
+    fflush(fp);
+    fclose(fp);
+
+    printf("\nProfile updated successfully!\n");
 }

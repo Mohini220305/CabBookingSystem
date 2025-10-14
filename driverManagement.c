@@ -54,6 +54,8 @@ void manage_driver()
             strcpy(d.pass, "driver123"); // default password
             d.available = 1; // Driver is free by default
             d.location = 1;  // Default location index (ISBT)
+            d.completedRides = 0;
+            d.earnings = 0.0;
             d.mustChangePassword = 1;
 
             fp = fopen("drivers.txt", "ab");

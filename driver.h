@@ -9,6 +9,8 @@ typedef struct Driver
     char pass[20];
     int location;  // index of location
     int available; // 1 if free, 0 if busy
+    int completedRides;
+    float earnings;
     int mustChangePassword;
 } Driver;
 
@@ -17,5 +19,8 @@ void viewAssignedRides(int driverId);
 void viewCompletedRides(int driverId);
 int loadDrivers(Driver drivers[]);
 void updateDriverLocation(int driverId);
+void updateDriverDetails(int driverID);
+void setDriverAvailability(int driverId);
+void showDriverDashboard(Driver d);
 
 #endif

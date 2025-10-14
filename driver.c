@@ -19,7 +19,9 @@ void driverMenu(int driverId)
         printf("1. View Assigned Rides\n");
         printf("2. Set Current Location\n");
         printf("3. View Completed Rides\n");
-        printf("4. Logout\n");
+        printf("4. Set Availability (Online/Offline)\n");
+        printf("5. Update Profile\n");
+        printf("6. Logout\n");
         printf("Enter choice: ");
         scanf("%d", &ch);
         getchar();
@@ -37,12 +39,18 @@ void driverMenu(int driverId)
             viewCompletedRides(driverId);
             break;
         case 4:
+            setDriverAvailability(driverId);
+            break;
+        case 5:
+            updateDriverDetails(driverId);
+            break;
+        case 6:
             printf("Logging out...\n");
             break;
         default:
             printf("Invalid choice!\n");
         }
-    } while (ch != 4);
+    } while (ch != 6);
 }
 
 // This function now shows assigned rides AND lets driver Accept/Reject/Start/End
@@ -82,10 +90,6 @@ void viewAssignedRides(int driverId)
             printf("\nStatus: %s", r.status);
             printf("\nBooking Time: ");
             printTime(r.bookingTime);
-            printf("\nStart Time: ");
-            printTime(r.startTime);
-            printf("\nEnd Time: ");
-            printTime(r.endTime);
             printf("\n");
 
             int choice;
@@ -188,12 +192,32 @@ void viewAssignedRides(int driverId)
                             if (d.id == driverId)
                             {
                                 d.location = dropIndex;
+                                d.completedRides += 1;     // increment completed rides
+                                d.earnings += r.fare; // add fare to total earnings
                                 fseek(dfp, -sizeof(Driver), SEEK_CUR);
                                 fwrite(&d, sizeof(Driver), 1, dfp);
                                 break;
                             }
                         }
                         fclose(dfp);
+                    }
+
+                    // update ride count for customer
+                    FILE *cfp = fopen("customer.txt", "rb+");
+                    if (cfp)
+                    {
+                        Customer cust;
+                        while (fread(&cust, sizeof(Customer), 1, cfp))
+                        {
+                            if (cust.id == r.customerId)
+                            {
+                                cust.totalRides += 1;
+                                fseek(cfp, -sizeof(Customer), SEEK_CUR);
+                                fwrite(&cust, sizeof(Customer), 1, cfp);
+                                break;
+                            }
+                        }
+                        fclose(cfp);
                     }
 
                     FILE *bfp = fopen("bills.txt", "ab");
@@ -328,3 +352,103 @@ int loadDrivers(Driver drivers[])
     return count;
 }
 
+void updateDriverDetails(int driverID)
+{
+    FILE *fp = fopen("drivers.txt", "rb+");
+    if (fp == NULL)
+    {
+        printf("No drivers found!\n");
+        return;
+    }
+
+    Driver d;
+    int found = 0;
+    long pos;
+
+    while (fread(&d, sizeof(Driver), 1, fp))
+    {
+        if (d.id == driverID)
+        {
+            found = 1;
+            pos = ftell(fp) - sizeof(Driver);
+            break;
+        }
+    }
+
+    if (!found)
+    {
+        printf("Driver not found!\n");
+        fclose(fp);
+        return;
+    }
+
+    int choice;
+    printf("\n--- Update Profile ---\n");
+    printf("1. Name\n2. Vehicle\n3. Password\nEnter choice: ");
+    scanf("%d", &choice);
+    getchar();
+
+    switch (choice)
+    {
+    case 1:
+        printf("Enter new name: ");
+        fgets(d.name, sizeof(d.name), stdin);
+        d.name[strcspn(d.name, "\n")] = '\0';
+        break;
+    case 2:
+        printf("Enter new vehicle: ");
+        fgets(d.vehicle, sizeof(d.vehicle), stdin);
+        d.vehicle[strcspn(d.vehicle, "\n")] = '\0';
+        break;
+    case 3:
+        printf("Enter new password: ");
+        scanf("%s", d.pass);
+        break;
+    default:
+        printf("Invalid choice!\n");
+        fclose(fp);
+        return;
+    }
+
+    fseek(fp, pos, SEEK_SET);
+    fwrite(&d, sizeof(Driver), 1, fp);
+    fflush(fp);
+    fclose(fp);
+
+    printf("\nProfile updated successfully!\n");
+}
+
+void setDriverAvailability(int driverId)
+{
+    FILE *fp = fopen("drivers.txt", "rb+");
+    if (!fp)
+    {
+        printf("Error opening driver file.\n");
+        return;
+    }
+
+    Driver d;
+    int found = 0;
+    while (fread(&d, sizeof(Driver), 1, fp))
+    {
+        if (d.id == driverId)
+        {
+            found = 1;
+            printf("\nCurrent status: %s\n", d.available ? "Online" : "Offline");
+            printf("Set new availability (1 = Online, 0 = Offline): ");
+            scanf("%d", &d.available);
+
+            fseek(fp, -sizeof(Driver), SEEK_CUR);
+            fwrite(&d, sizeof(Driver), 1, fp);
+            fflush(fp);
+
+            printf("Availability updated successfully!\n");
+            break;
+        }
+    }
+
+    if (!found)
+        printf("Driver not found!\n");
+
+    fclose(fp);
+}

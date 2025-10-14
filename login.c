@@ -56,7 +56,8 @@ int driverLogin(){
         return 0;
     }
     if (strcmp(password, d.pass) == 0){
-        printf("Login Successful! Welcome, %s\n", d.name);
+        printf("Login Successful! \n");
+        showDriverDashboard(d);
         if (d.mustChangePassword){
             char newPass[50];
             printf("You are using a temporary password. Please set a new password: ");
@@ -111,6 +112,7 @@ int customerLogin(){
             }
             fclose(fp);
             printf("Login Successful! \n");
+            showCustomerDashboard(c);
             return customerID;
         }
     }
@@ -148,6 +150,7 @@ void registerCustomer(){
     scanf("%s", c.password);
 
     c.is_blocked = 0;
+    c.totalRides = 0;
 
     fseek(fp, 0, SEEK_END);
     fwrite(&c, sizeof(Customer), 1, fp);
