@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Dashboard | Cabify-C</title>
+    <link rel="stylesheet" href="dashboard.css">
+    <style>
+        .driver-info {background: #f9f9f9; border-radius: 10px; padding: 15px; margin-bottom: 20px;}
+        .submenu {display: none;flex-direction: column;gap: 5px;margin-left: 10px;}
+        .submenu a {text-decoration: none;}
+        .menu-item {cursor: pointer;}
+        .rides-table {width: 100%;border-collapse: collapse;margin-top: 15px;}
+        .rides-table th,.rides-table td {border: 1px solid #cccccc;padding: 8px;text-align: center;}
+        .rides-table th {background: #27ae60;}
+    </style>
+</head>
+
+<body>
+    <div class="dashboard">
+        <aside class="sidebar">
+            <h2>Driver Panel</h2>
+            <a href="#" class="menu-item" data-action="dashboard">🏠 Dashboard</a>
+
+            <button class="dropdown-btn">🚗 Ride Management</button>
+            <div class="submenu">
+                <a href="#" class="menu-item" data-action="viewAssigned">View Assigned Rides</a>
+                <a href="#" class="menu-item" data-action="viewCompleted">View Completed Rides</a>
+            </div>
+
+            <button class="dropdown-btn">👤 Profile Management</button>
+            <div class="submenu">
+                <a href="#" class="menu-item" data-action="setLocation">Set Current Location</a>
+                <a href="#" class="menu-item" data-action="updateProfile">Update Profile</a>
+                <a href="#" class="menu-item" data-action="changePassword">Change Password</a>
+            </div>
+
+            <a href="/CAB_BOOKING/frontend/index.html" class="menu-item">🚪 Logout</a>
+        </aside>
+
+        <main class="content">
+            <div id="main_content">
+                <p style="font-size:1.2rem;color:#555;">Loading dashboard...</p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const driverId = urlParams.get('driverId');
+
+            // Dropdown toggle
+            document.querySelectorAll(".dropdown-btn").forEach(btn => {
+                btn.addEventListener("click", function () {
+                    this.classList.toggle("active");
+                    let sub = this.nextElementSibling;
+                    sub.style.display = sub.style.display === "flex" ? "none" : "flex";
+                });
+            });
+
+            // Fetch content dynamically
+            function loadContent(action, extraParams = "") {
+                const url = `/cgi-bin/driver_dashboard_.cgi?action=${action}&driverId=${driverId}${extraParams}`;
+                fetch(url)
+                    .then(res => res.text())
+                    .then(data => {
+                        const bodyContent = data.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+                        document.getElementById("main_content").innerHTML = bodyContent ? bodyContent[1] : data;
+                        attachFormHandlers();
+                        attachRideRefresh(action); // For assigned/completed rides
+                    })
+                    .catch(() => {
+                        document.getElementById("main_content").innerHTML = "<p>Failed to load content.</p>";
+                    });
+            }
+
+            // Sidebar click handling
+            document.querySelectorAll(".menu-item").forEach(item => {
+                item.addEventListener("click", function (e) {
+                    const action = this.getAttribute("data-action");
+                    if (action) {
+                        e.preventDefault();
+                        loadContent(action);
+                    }
+                });
+            });
+
+            // Handle forms dynamically
+            function attachFormHandlers() {
+                document.querySelectorAll("#main_content form").forEach(form => {
+                    form.addEventListener("submit", function (e) {
+                        e.preventDefault();
+                        const params = new URLSearchParams(new FormData(this)).toString();
+                        const action = form.querySelector("input[name='action']").value;
+                        loadContent(action, "&" + params);
+                    });
+                });
+            }
+
+            // ✅ Auto-refresh for assigned/completed rides (every 15 seconds)
+            let rideInterval;
+            function attachRideRefresh(action) {
+                clearInterval(rideInterval);
+                if (action === "viewAssigned" || action === "viewCompleted") {
+                    rideInterval = setInterval(() => {
+                        loadContent(action); // Refresh table dynamically
+                    }, 15000); // 15 seconds
+                }
+            }
+
+            // Initial dashboard load
+            loadContent("dashboard");
+        });
+    </script>
+</body>
+
+</html>

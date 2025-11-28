@@ -14,32 +14,27 @@
     <div class="right">
         <div class="login-box">
             <h2>Customer Login</h2>
-            <form>
-                <div class="input-group">
-                    <label for="customer-username">Username</label>
-                    <input type="text" id="customer-username" placeholder="Enter Username" required />
-                </div>
+        <form method="GET" action="/cgi-bin/login.cgi">
+            <input type="hidden" name="type" value="customer" />
+        
+            <div class="input-group">
+                <label for="customer-id">Customer ID</label>
+                <input type="text" name="customerID" id="customer-id" placeholder="Enter Customer ID" required />
+            </div>
+        
+            <div class="input-group">
+                <label for="customer-password">Password</label>
+                <input type="password" name="password" id="customer-password" placeholder="Enter Password" required />
+            </div>
+        
+            <button type="submit" class="btn">Login</button>
+        </form>
 
-                <div class="input-group">
-                    <label for="customer-password">Password</label>
-                    <input type="password" id="customer-password" placeholder="Enter Password" required />
-                </div>
-
-                <button type="submit" class="btn">Login</button>
-
-                <!-- 🔗 Forgot Password Link -->
-                <p style="margin-top: 10px; text-align: center;">
-                    <a href="forgot_password.html" class="forgot-link">Forgot Password?</a>
-                </p>
-
-                <!-- 📝 Register Link -->
-                <p style="margin-top: 5px; text-align: center;">
-                    Don’t have an account?
-                    <a href="customer_register.html" class="register-link">Register</a>
-                </p>
-            </form>
-
-            <a href="index.html" class="back-link">← Back to Home</a>
+            <div class="extra-links">
+                <a href="forgot_password.html">Forgot Password?</a><br />
+                <span>New User? <a href="customer_register.html">Register Now</a></span><br />
+                <a href="index.html" class="back-link">← Back to Home</a>
+            </div>
         </div>
     </div>
 </body>

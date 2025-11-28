@@ -2,47 +2,46 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Register | Cabify-C</title>
-    <link rel="stylesheet" href="login_page.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Customer Registration | Cabify-C</title>
+    <link rel="stylesheet" href="login_page.css" />
 </head>
 
 <body>
-    <div class="login-box">
-        <h2>Customer Registration</h2>
-        <form>
-            <div class="user-box">
-                <input type="text" name="name" required>
-                <label>Full Name</label>
+    <div class="left"></div>
+
+    <div class="right">
+        <div class="login-box">
+            <h2>Register as Customer</h2>
+
+            <form method="GET" action="/cgi-bin/login.cgi">
+                <input type="hidden" name="type" value="register" />
+
+                <div class="input-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" placeholder="Enter Your Name" required />
+                </div>
+
+                <div class="input-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" name="phone" placeholder="Enter Phone Number" pattern="[0-9]{10}"
+                        required />
+                </div>
+
+                <div class="input-group">
+                    <label for="password">Create Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter Password" required />
+                </div>
+
+                <button type="submit" class="btn">Register</button>
+            </form>
+
+            <div class="extra-links">
+                <a href="customer_login.html">Already have an account? Login</a><br />
+                <a href="index.html" class="back-link">← Back to Home</a>
             </div>
-            <div class="user-box">
-                <input type="email" name="email" required>
-                <label>Email</label>
-            </div>
-            <div class="user-box">
-                <input type="text" name="username" required>
-                <label>Username</label>
-            </div>
-            <div class="user-box">
-                <input type="password" name="password" required>
-                <label>Password</label>
-            </div>
-            <div class="user-box">
-                <input type="password" name="confirm_password" required>
-                <label>Confirm Password</label>
-            </div>
-            <div class="user-box">
-                <input type="text" name="phone" required>
-                <label>Phone Number</label>
-            </div>
-            <div class="user-box">
-                <input type="text" name="address">
-                <label>Address</label>
-            </div>
-            <button type="submit">Register</button>
-            <p style="margin-top:10px;">Already have an account? <a href="customer_login.html">Login</a></p>
-        </form>
+        </div>
     </div>
 </body>
 

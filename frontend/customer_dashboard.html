@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Dashboard | Cabify-C</title>
+    <link rel="stylesheet" href="dashboard.css">
+    <style>
+        .submenu { display: none; flex-direction: column; gap: 5px; margin-left: 10px; }
+        .submenu a { text-decoration: none; }
+        .menu-item { cursor: pointer; }
+        .rides-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .rides-table th, .rides-table td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        .rides-table th { background: #f2f2f2; }
+    </style>
+</head>
+<body>
+<div class="dashboard">
+    <aside class="sidebar">
+        <h2>Customer Panel</h2>
+
+        <a href="#" class="menu-item" data-action="dashboard">🏠 Dashboard</a>
+
+        <button class="dropdown-btn">🚖 Ride Management</button>
+        <div class="submenu">
+            <a href="#" class="menu-item" data-action="bookRideForm">Book a Ride</a>
+            <a href="#" class="menu-item" data-action="viewHistory">Ride History</a>
+            <a href="#" class="menu-item" data-action="viewStatus">Ride Status</a>
+            <a href="#" class="menu-item" data-action="cancelRideForm">Cancel Ride</a>
+        </div>
+
+        <button class="dropdown-btn">👤 Profile</button>
+        <div class="submenu">
+            <a href="#" class="menu-item" data-action="updateProfileForm">Update Profile</a>
+            <a href="#" class="menu-item" data-action="changePasswordForm">Change Password</a>
+
+        </div>
+
+        <a href="/CAB_BOOKING/frontend/index.html" class="menu-item">🚪 Logout</a>
+    </aside>
+
+    <main class="content">
+        <div id="main_content">
+            <p style="font-size:1.2rem;color:#555;">Loading dashboard...</p>
+        </div>
+    </main>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const custId = urlParams.get('custId') || 1;
+
+    // Dropdown toggle
+    document.querySelectorAll(".dropdown-btn").forEach(btn => {
+        btn.addEventListener("click", function () {
+            this.classList.toggle("active");
+            let sub = this.nextElementSibling;
+            sub.style.display = sub.style.display === "flex" ? "none" : "flex";
+        });
+    });
+
+    // Load content from CGI
+    function loadContent(action, extraParams="") {
+        const url = `/cgi-bin/customer_dashboard.cgi?action=${action}&custId=${custId}${extraParams}`;
+        fetch(url)
+        .then(res => res.text())
+        .then(data => {
+            const bodyContent = data.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+            document.getElementById("main_content").innerHTML = bodyContent ? bodyContent[1] : data;
+            attachFormHandlers();
+        })
+        .catch(() => {
+            document.getElementById("main_content").innerHTML = "<p>Failed to load content.</p>";
+        });
+    }
+
+    // Sidebar click
+    document.querySelectorAll(".menu-item").forEach(item => {
+        item.addEventListener("click", function(e) {
+            const action = this.getAttribute("data-action");
+            if(action){
+                e.preventDefault();
+                loadContent(action);
+            }
+        });
+    });
+
+    // Form submissions
+    function attachFormHandlers() {
+        document.querySelectorAll("#main_content form").forEach(form => {
+            form.addEventListener("submit", function(e){
+                e.preventDefault();
+                const params = new URLSearchParams(new FormData(this)).toString();
+                const action = form.querySelector("input[name='action']").value;
+                loadContent(action, "&"+params);
+            });
+        });
+    }
+
+    // Initial load
+    loadContent("dashboard");
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Cabify-C</title>
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+
+<body>
+    <div class="dashboard">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h2>Admin Panel</h2>
+
+            <a href="/CAB_BOOKING/frontend/admin_dashboard.html" class="menu-item">🏠 Dashboard</a>
+
+            <!-- Driver Management -->
+            <button class="dropdown-btn">🚗 Driver Management</button>
+            <div class="submenu">
+                <a href="/cgi-bin/admin_dashboard.cgi?action=add_driver" class="menu-item">Add Driver</a>
+                <a href="/cgi-bin/admin_dashboard.cgi?action=modify_driver" class="menu-item">Modify Driver</a>
+                <a href="/cgi-bin/admin_dashboard.cgi?action=delete_driver" class="menu-item">Delete Driver</a>
+                <a href="/cgi-bin/admin_dashboard.cgi?action=view_drivers" class="menu-item">View Drivers</a>
+                <a href="/cgi-bin/admin_dashboard.cgi?action=view_ratings">View Driver Ratings</a>
+            </div>
+
+            <!-- Customer Management -->
+            <button class="dropdown-btn">👤 Customer Management</button>
+            <div class="submenu">
+                <a href="/cgi-bin/admin_dashboard.cgi?action=view_customers" class="menu-item">View Customers</a>
+                <a href="/cgi-bin/admin_dashboard.cgi?action=remove_customer" class="menu-item">Remove Customer</a>
+                <a href="/cgi-bin/admin_dashboard.cgi?action=block_unblock_customer" class="menu-item">Block/Unblock
+                    Customer</a>
+            </div>
+
+            <!-- Reports -->
+            <button class="dropdown-btn">📊 Reports</button>
+            <div class="submenu">
+                <a href="/cgi-bin/admin_dashboard.cgi?action=view_rides" class="menu-item">Ride Reports</a>
+                <a href="/cgi-bin/admin_dashboard.cgi?action=view_bills" class="menu-item">View All Bills</a>
+            </div>
+
+            <a href="/CAB_BOOKING/frontend/index.html" class="menu-item">🚪 Logout</a>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content">
+            <div id="main_content">
+                <h1>Welcome, Admin 👋</h1>
+                <p>Select an option from the sidebar to manage drivers, customers, or view reports.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript for dropdowns and single-click dynamic loading -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const dropdowns = document.querySelectorAll(".dropdown-btn");
+            dropdowns.forEach(btn => {
+                btn.addEventListener("click", function () {
+                    this.classList.toggle("active");
+                    const submenu = this.nextElementSibling;
+                    submenu.style.display = submenu.style.display === "flex" ? "none" : "flex";
+                });
+            });
+
+            const menuItems = document.querySelectorAll(".menu-item");
+            const mainContent = document.getElementById("main_content");
+
+            menuItems.forEach(item => {
+                item.addEventListener("click", function (event) {
+                    if (this.href.includes("/cgi-bin/")) {
+                        event.preventDefault();
+                        mainContent.innerHTML = "<p style='font-size:1.2rem;color:#555;'>Loading...</p>";
+
+                        fetch(this.href)
+                            .then(res => res.text())
+                            .then(data => {
+                                const content = data.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+                                mainContent.innerHTML = content ? content[1] : data;
+
+                                mainContent.style.opacity = 0;
+                                setTimeout(() => {
+                                    mainContent.style.transition = "opacity 0.4s ease";
+                                    mainContent.style.opacity = 1;
+                                }, 50);
+                            })
+                            .catch(() => {
+                                mainContent.innerHTML = "<p class='error-msg'>Failed to load content.</p>";
+                            });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
