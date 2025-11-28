@@ -21,7 +21,8 @@ void customerMenu(Graph *city, int custId)
         printf("6. Logout\n");
         printf("Please select an option: ");
         scanf("%d", &ch);
-        while (getchar() != '\n');
+        while (getchar() != '\n')
+            ;
 
         switch (ch)
         {

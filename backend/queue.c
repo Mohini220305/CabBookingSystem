@@ -9,20 +9,25 @@ int rideID = 1;
 Ride *front = NULL;
 Ride *rear = NULL;
 
-void enqueueRide(Ride *newRide){
-    if (rear == NULL){
+void enqueueRide(Ride *newRide)
+{
+    if (rear == NULL)
+    {
         front = rear = newRide;
     }
-    else{
+    else
+    {
         rear->next = newRide;
         rear = newRide;
     }
     newRide->next = NULL;
 }
 
-void saveRideToFile(Ride *r){
+void saveRideToFile(Ride *r)
+{
     FILE *fp = fopen("rides.txt", "ab");
-    if (fp == NULL){
+    if (fp == NULL)
+    {
         printf("Error opening rides file!\n");
         return;
     }
@@ -30,13 +35,15 @@ void saveRideToFile(Ride *r){
     fclose(fp);
 }
 
-void loadRidesFromFile(){
+void loadRidesFromFile()
+{
     FILE *fp = fopen("rides.txt", "rb");
     if (fp == NULL)
         return;
 
     Ride temp;
-    while (fread(&temp, sizeof(Ride), 1, fp)){
+    while (fread(&temp, sizeof(Ride), 1, fp))
+    {
         Ride *newRide = (Ride *)malloc(sizeof(Ride));
         *newRide = temp;
         newRide->next = NULL;
@@ -49,7 +56,8 @@ void loadRidesFromFile(){
 }
 
 // Function to format time into string
-void printTime(time_t t){
+void printTime(time_t t)
+{
     if (t == 0) // no timestamp yet
     {
         printf("N/A");
@@ -62,7 +70,8 @@ void printTime(time_t t){
 }
 
 // Book ride
-Ride *bookRide(Graph *city, int customerId, char pickup[], char drop[]){
+Ride *bookRide(Graph *city, int customerId, char pickup[], char drop[])
+{
     Driver drivers[20];
     int numDrivers = loadDrivers(drivers);
 
@@ -86,18 +95,22 @@ Ride *bookRide(Graph *city, int customerId, char pickup[], char drop[]){
     int pickupLoc = getLocationIndex(city, pickup);
     int dropLoc = getLocationIndex(city, drop);
 
-    if (pickupLoc == -1 || dropLoc == -1){
+    if (pickupLoc == -1 || dropLoc == -1)
+    {
         printf("Invalid pickup or drop location!\n");
         strcpy(newRide->status, "Invalid");
     }
-    else{
-        int driverId = allocateDriver(city, drivers, numDrivers, pickupLoc, pickup, drop);
-        if (driverId != -1){
+    else
+    {
+        int driverId = allocateDriver(city, drivers, numDrivers, pickupLoc, pickup, drop,-1);
+        if (driverId != -1)
+        {
             newRide->driverId = driverId;
             strcpy(newRide->status, "Pending");
             printf("Nearest driver found: %d\n", driverId);
         }
-        else{
+        else
+        {
             strcpy(newRide->status, "Waiting");
             printf("No drivers available! Ride is in waiting queue.\n");
         }
@@ -106,12 +119,16 @@ Ride *bookRide(Graph *city, int customerId, char pickup[], char drop[]){
     enqueueRide(newRide);
     saveRideToFile(newRide);
 
-    if (newRide->driverId != -1){
+    if (newRide->driverId != -1)
+    {
         FILE *dfp = fopen("drivers.txt", "rb+");
-        if (dfp){
+        if (dfp)
+        {
             Driver d;
-            while (fread(&d, sizeof(Driver), 1, dfp)){
-                if (d.id == newRide->driverId){
+            while (fread(&d, sizeof(Driver), 1, dfp))
+            {
+                if (d.id == newRide->driverId)
+                {
                     d.available = 0;
                     fseek(dfp, -sizeof(Driver), SEEK_CUR);
                     fwrite(&d, sizeof(Driver), 1, dfp);
@@ -129,10 +146,12 @@ Ride *bookRide(Graph *city, int customerId, char pickup[], char drop[]){
 }
 
 // Cancel Ride
-void cancelRide(int custId){
+void cancelRide(int custId)
+{
     FILE *fp = fopen("rides.txt", "rb");
     FILE *temp = fopen("temp.txt", "wb");
-    if (!fp || !temp){
+    if (!fp || !temp)
+    {
         printf("Error opening files!\n");
         return;
     }
@@ -141,24 +160,33 @@ void cancelRide(int custId){
     scanf("%d", &rideId);
     Ride r;
     int found = 0;
-    while (fread(&r, sizeof(Ride), 1, fp)){
-        if (r.rideID == rideId && r.customerId == custId){
+    while (fread(&r, sizeof(Ride), 1, fp))
+    {
+        if (r.rideID == rideId && r.customerId == custId)
+        {
             found = 1;
-            if (strcmp(r.status, "Completed") == 0){
+            if (strcmp(r.status, "Completed") == 0)
+            {
                 printf("Ride already completed! Cannot cancel.\n");
             }
-            else if (strcmp(r.status, "Cancelled") == 0){
+            else if (strcmp(r.status, "Cancelled") == 0)
+            {
                 printf("Ride is already cancelled.\n");
             }
-            else{
+            else
+            {
                 strcpy(r.status, "Cancelled");
                 r.cancellationTime = time(NULL); // set cancellation timestamp
-                if (r.driverId != -1){
+                if (r.driverId != -1)
+                {
                     FILE *dfp = fopen("drivers.txt", "rb+");
-                    if (dfp != NULL){
+                    if (dfp != NULL)
+                    {
                         Driver d;
-                        while (fread(&d, sizeof(Driver), 1, dfp)){
-                            if (d.id == r.driverId){
+                        while (fread(&d, sizeof(Driver), 1, dfp))
+                        {
+                            if (d.id == r.driverId)
+                            {
                                 d.available = 1;
                                 fseek(dfp, -sizeof(Driver), SEEK_CUR);
                                 fwrite(&d, sizeof(Driver), 1, dfp);

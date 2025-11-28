@@ -1,154 +1,215 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "login.h"
 
-int adminLogin()
+#define DRIVER_FILE "C:/xampp/htdocs/CAB_BOOKING/backend/drivers.txt"
+#define CUSTOMER_FILE "C:/xampp/htdocs/CAB_BOOKING/backend/customer.txt"
+
+/* ------------------------- Utility: Extract value ------------------------- */
+char *getParam(char *query, const char *key, char *value)
 {
-    char adminName[50];
-    char password[50];
-
-    printf("Enter your username : ");
-    scanf("%s", adminName);
-    printf("Enter your password : ");
-    scanf("%s", password);
-
-    if (strcmp(adminName, "Admin") == 0 && strcmp(password, "admin123") == 0)
+    char *pos = strstr(query, key);
+    if (pos)
     {
-        printf("Login Successful! \n");
-        return 1;
+        pos += strlen(key) + 1;
+        sscanf(pos, "%[^&]", value);
+        return value;
     }
-    return 0;
+    strcpy(value, "");
+    return value;
 }
 
-int driverLogin(){
-    int driverID;
-    char password[50];
-    FILE *fp;
-    Driver d;
-    printf("Enter your ID: ");
-    if (scanf("%d", &driverID) != 1){
-        while (getchar() != '\n');
+/* ------------------------- ADMIN LOGIN ------------------------- */
+int adminLogin(char *query)
+{
+    char username[50], password[50];
+    getParam(query, "username", username);
+    getParam(query, "password", password);
+
+    printf("Content-type:text/html\n\n");
+
+    if (strcmp(username, "Admin") == 0 && strcmp(password, "admin123") == 0)
+    {
+        printf("<h2>Admin Login Successful!</h2>");
+        printf("<meta http-equiv='refresh' content='1;url=/CAB_BOOKING/frontend/admin_dashboard.html'>");
+        return 1;
+    }
+    else
+    {
+        printf("<h3>Invalid Admin Credentials!</h3>");
+        printf("<a href='/CAB_BOOKING/frontend/admin_login.html'>Try Again</a>");
         return 0;
     }
-    while (getchar() != '\n');
-    printf("Enter your password: ");
-    fgets(password, sizeof(password), stdin);
-    password[strcspn(password, "\n")] = '\0';
-    fp = fopen("drivers.txt", "rb+");
-    if (fp == NULL){
-        printf("No drivers found!\n");
+}
+
+/* ------------------------- DRIVER LOGIN WITH PASSWORD CHANGE ------------------------- */
+int driverLogin(char *query)
+{
+    char idStr[20] = "", password[50] = "";
+    int driverID;
+    FILE *fp;
+    Driver d;
+
+    // Get parameters from query
+    getParam(query, "driverID", idStr);
+    getParam(query, "password", password);
+
+    driverID = atoi(idStr);
+
+    printf("Content-type:text/html\n\n");
+
+    if (driverID <= 0)
+    {
+        printf("<h3>Invalid Driver ID. Please try again.</h3>");
+        printf("<a href='/CAB_BOOKING/frontend/driver_login.html'>Back to Login</a>");
+        return 0;
+    }
+
+    fp = fopen(DRIVER_FILE, "rb");
+    if (!fp)
+    {
+        printf("<h3>Error: Driver file not found!</h3>");
         return 0;
     }
 
     int found = 0;
-    long pos = 0;
-    while (fread(&d, sizeof(Driver), 1, fp) == 1){
-        if (d.id == driverID){
+    while (fread(&d, sizeof(Driver), 1, fp) == 1)
+    {
+        if (d.id == driverID)
+        {
             found = 1;
-            pos = ftell(fp) - sizeof(Driver);
             break;
         }
     }
 
-    if (!found){
-        printf("Driver ID not found.\n");
+    if (!found)
+    {
+        printf("<h3>Driver ID not found.</h3>");
+        printf("<a href='/CAB_BOOKING/frontend/driver_login.html'>Back to Login</a>");
         fclose(fp);
         return 0;
     }
-    if (strcmp(password, d.pass) == 0){
-        printf("Login Successful! \n");
-        showDriverDashboard(d);
-        if (d.mustChangePassword){
-            char newPass[50];
-            printf("You are using a temporary password. Please set a new password: ");
-            fgets(newPass, sizeof(newPass), stdin);
-            newPass[strcspn(newPass, "\n")] = '\0';
 
-            strncpy(d.pass, newPass, sizeof(d.pass) - 1);
-            d.pass[sizeof(d.pass) - 1] = '\0';
-            d.mustChangePassword = 0;
-
-            fseek(fp, pos, SEEK_SET);
-            fwrite(&d, sizeof(Driver), 1, fp);
-            fflush(fp);
-
-            printf("Password changed successfully. Please login again.\n");
-            fclose(fp);
-            return driverLogin();
-        }
+    /* --------------------------------------------------------------------
+       ✅ Normal login check (password verification only)
+    -------------------------------------------------------------------- */
+    if (strcmp(password, d.pass) == 0)
+    {
         fclose(fp);
+
+        // --- If password change required (first-time login) ---
+        if (d.mustChangePassword)
+        {
+            printf("<!DOCTYPE html><html><head><title>Password Change Required</title>");
+            printf("<style>");
+            printf("body { font-family: Arial, sans-serif; background: #f0f2f5; text-align: center; padding-top: 100px; }");
+            printf(".box { background: white; padding: 30px; border-radius: 12px; display: inline-block; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 400px; }");
+            printf(".btn { background-color: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; text-decoration:none; }");
+            printf(".btn:hover { background-color: #0056b3; }");
+            printf("</style></head><body>");
+            printf("<div class='box'>");
+            printf("<h2>Hello, %s!</h2>", d.name);
+            printf("<p>You are using a temporary password.<br>Please change it from your dashboard.</p>");
+            printf("<a href='/CAB_BOOKING/frontend/driver_dashboard.html?driverId=%d' class='btn'>Go to Dashboard</a>", driverID);
+            printf("</div></body></html>");
+            return driverID;
+        }
+
+        // --- Normal successful login ---
+        printf("<!DOCTYPE html><html><head>");
+        printf("<meta http-equiv='refresh' content='1;url=/CAB_BOOKING/frontend/driver_dashboard.html?driverId=%d'>", driverID);
+        printf("</head><body>");
+        printf("<h2>Login Successful!</h2>");
+        printf("<p>Redirecting to your dashboard...</p>");
+        printf("</body></html>");
         return driverID;
     }
-    else{
-        printf("Incorrect password.\n");
+    else
+    {
+        printf("<h3>Incorrect Password!</h3>");
+        printf("<a href='/CAB_BOOKING/frontend/driver_login.html'>Back to Login</a>");
         fclose(fp);
         return 0;
     }
 }
 
-int customerLogin(){
+/* ------------------------- CUSTOMER LOGIN ------------------------- */
+int customerLogin(char *query)
+{
+    char idStr[20], password[50];
     int customerID;
-    char password[50];
     FILE *fp;
     Customer c;
 
-    printf("Enter your ID : ");
-    scanf("%d", &customerID);
-    printf("Enter your password : ");
-    scanf("%s", password);
+    getParam(query, "customerID", idStr);
+    getParam(query, "password", password);
+    customerID = atoi(idStr);
 
-    fp = fopen("customer.txt", "rb");
-    if (fp == NULL){
-        printf("No customers registered yet!\n");
+    printf("Content-type:text/html\n\n");
+
+    fp = fopen(CUSTOMER_FILE, "rb");
+    if (!fp)
+    {
+        printf("<h3>No customers registered yet!</h3>");
         return 0;
     }
 
-    while (fread(&c, sizeof(Customer), 1, fp)){
-        if (c.id == customerID && strcmp(password, c.password) == 0){
-            if (c.is_blocked){
-                printf("Your account is blocked. Please contact support.\n");
+    while (fread(&c, sizeof(Customer), 1, fp) == 1)
+    {
+        if (c.id == customerID && strcmp(password, c.password) == 0)
+        {
+            if (c.is_blocked)
+            {
+                printf("<h3>Your account is blocked. Please contact support.</h3>");
                 fclose(fp);
                 return 0;
             }
+
+            printf("<h2>Customer Login Successful!</h2>");
+
+            // ✅ Redirect with customerId
+            printf("<meta http-equiv='refresh' content='1;url=/CAB_BOOKING/frontend/customer_dashboard.html?custId=%d'>", customerID);
+
             fclose(fp);
-            printf("Login Successful! \n");
-            showCustomerDashboard(c);
             return customerID;
         }
     }
 
+    printf("<h3>Invalid Customer Credentials!</h3>");
     fclose(fp);
     return 0;
 }
 
-void registerCustomer(){
-    FILE *fp = fopen("customer.txt", "ab+");
-    if (fp == NULL){
-        printf("Error opening file!\n");
+/* ------------------------- CUSTOMER REGISTRATION ------------------------- */
+void registerCustomer(char *query)
+{
+    char name[50], phone[20], password[50];
+    Customer c, temp;
+
+    FILE *fp = fopen(CUSTOMER_FILE, "ab+");
+    if (!fp)
+    {
+        printf("Content-type:text/html\n\n");
+        printf("<h3>Error opening customer file!</h3>");
         return;
     }
 
-    Customer c;
-    c.id = 1; 
-    Customer temp;
+    getParam(query, "name", name);
+    getParam(query, "phone", phone);
+    getParam(query, "password", password);
+
+    c.id = 1;
     fseek(fp, 0, SEEK_SET);
-    while (fread(&temp, sizeof(Customer), 1, fp) == 1){
+    while (fread(&temp, sizeof(Customer), 1, fp) == 1)
+    {
         if (temp.id >= c.id)
             c.id = temp.id + 1;
     }
 
-    printf("\nYour Customer ID will be: %d\n", c.id);
-    getchar();
-    printf("Enter Name: ");
-    scanf("%[^\n]", c.name);
-    getchar();
-
-    printf("Enter Phone: ");
-    scanf("%s", c.phone);
-
-    printf("Create Password: ");
-    scanf("%s", c.password);
-
+    strcpy(c.name, name);
+    strcpy(c.phone, phone);
+    strcpy(c.password, password);
     c.is_blocked = 0;
     c.totalRides = 0;
 
@@ -156,9 +217,39 @@ void registerCustomer(){
     fwrite(&c, sizeof(Customer), 1, fp);
     fclose(fp);
 
-    printf("\nRegistration successful! Your Customer ID is %d. You can now login.\n", c.id);
-    int success = customerLogin();
-    if (success != -1)
-        customerMenu(city, success);
+    printf("Content-type:text/html\n\n");
+    printf("<h2>Registration Successful!</h2>");
+    printf("<p>Your Customer ID is: %d</p>", c.id);
+    printf("<meta http-equiv='refresh' content='2;url=/CAB_BOOKING/frontend/customer_login.html'>");
 }
 
+/* ------------------------- MAIN ------------------------- */
+int main()
+{
+    char *query = getenv("QUERY_STRING");
+    if (!query)
+    {
+        printf("Content-type:text/html\n\n");
+        printf("<h3>No data received!</h3>");
+        return 0;
+    }
+
+    char type[20];
+    getParam(query, "type", type);
+
+    if (strcmp(type, "admin") == 0)
+        adminLogin(query);
+    else if (strcmp(type, "driver") == 0)
+        driverLogin(query);
+    else if (strcmp(type, "customer") == 0)
+        customerLogin(query);
+    else if (strcmp(type, "register") == 0)
+        registerCustomer(query);
+    else
+    {
+        printf("Content-type:text/html\n\n");
+        printf("<h3>Invalid request type!</h3>");
+    }
+
+    return 0;
+}

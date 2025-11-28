@@ -30,13 +30,14 @@ extern Graph *city;
 
 void printTime(time_t t);
 Ride *bookRide(Graph *city, int customerId, char pickup[], char drop[]);
-int allocateDriver(Graph *city, Driver drivers[], int numDrivers, int pickupLoc, char *pickup, char *drop);
+int allocateDriver(Graph *city, Driver drivers[], int numDrivers, int pickupLoc, char *pickup, char *drop, int excludeDriverId);
 void cancelRide(int rideID);
+void enqueueRide(Ride *newRide);
+//void cancelRide(int custId, int rideId);
 void reassignRide(Ride *ride, Graph *city, int driverId);
 void saveRideToFile(Ride *r);
 void loadRidesFromFile();
 void viewRideStatus(int custID); // for customer
 void showCustomerHistory(int customerId);
-//void showDriverHistory(int driverId);
 
 #endif
